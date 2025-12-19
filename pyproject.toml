@@ -1,0 +1,25 @@
+[project]
+name = "kama-db"
+license = {file = "LICENSE"}
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+]
+version = "0.1.0"
+dependencies = [
+    "kama-util @ git+https://github.com/pikulo-kama/kama-util.git@v0.1.2"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest-cov >= 7.0.0, < 8.0.0"
+]
+
+[tool.coverage.run]
+source = ["kdb"]
+disable_warnings = ["module-not-measured"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+addopts = "--cov=kdb --cov-report=term-missing"
