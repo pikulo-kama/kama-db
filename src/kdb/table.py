@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Callable, Iterator
+from typing import TYPE_CHECKING, Callable, Iterator, Any
 from kutil.logger import get_logger
 
 from kdb.row import DatabaseRow
@@ -11,13 +11,21 @@ _logger = get_logger(__name__)
 
 
 class DatabaseTable:
-    """
-    Database table wrapper.
-    Used to perform operations on table
-    data.
+    """Database table wrapper used to perform operations on table data.
+
+    This class provides an abstraction over a specific database table, allowing for
+    filtering, sorting, and local tracking of record changes (inserts, updates,
+    and deletes) before persisting them to the database.
     """
 
-    def __init__(self, db: "DatabaseManager",  table_name: str):
+    def __init__(self, db: "DatabaseManager", table_name: str):
+        """Initializes the DatabaseTable with a database manager and table name.
+
+        Args:
+            db: The DatabaseManager instance used for SQL execution.
+            table_name: The name of the table in the SQLite database.
+        """
+
         self.__db = db
         self.__record_counter = 0
         self.__where_clause = None
@@ -29,12 +37,20 @@ class DatabaseTable:
         self._columns: list[str] = []
 
     def __iter__(self) -> Iterator[DatabaseRow]:
+        """
+        Iterates over the local list of database records.
+        """
         return iter(self.__records)
 
-    def where(self, where_clause: str, *args):
-        """
-        Used to apply WHERE clause filter
-        that would be used to retrieve table data.
+    def where(self, where_clause: str, *args: Any):
+        """Applies a WHERE clause filter for the next retrieval.
+
+        Args:
+            where_clause: The SQL WHERE condition (e.g., 'id = ?').
+            *args: Positional arguments to bind to the WHERE clause.
+
+        Returns:
+            DatabaseTable: The current instance for method chaining.
         """
 
         self.__where_clause = where_clause
@@ -43,20 +59,26 @@ class DatabaseTable:
         return self
 
     def order_by(self, order_by_clause: str):
-        """
-        Used to set ORDER BY clause.
-        Allows to sort table data when retrieving
-        from database.
+        """Sets the ORDER BY clause for the next retrieval.
+
+        Args:
+            order_by_clause: The SQL column and direction (e.g., 'name ASC').
+
+        Returns:
+            DatabaseTable: The current instance for method chaining.
         """
 
         self.__order_by_clause = order_by_clause
-
         return self
 
     def retrieve(self):
-        """
-        Used to retrieve table data
-        from database.
+        """Retrieves table data from the database based on active filters.
+
+        Clears existing local records and populates them with data fetched
+        via the DatabaseManager.
+
+        Returns:
+            DatabaseTable: The current instance with populated records.
         """
 
         sql = f"SELECT * FROM {self.__table_name}"
@@ -77,7 +99,6 @@ class DatabaseTable:
         for row_data in cursor.fetchall():
             self.__record_counter += 1
             row = DatabaseRow(self.__table_name, self.__record_counter, row_data, self._columns)
-
             self.__records.append(row)
 
         _logger.debug("Data for table %s have been retrieved.", self.__table_name)
@@ -88,27 +109,33 @@ class DatabaseTable:
 
     @property
     def is_empty(self) -> bool:
+        """
+        Checks if the table's local record list is empty.
+        """
         return len(self.rows) == 0
 
     @property
     def rows(self) -> list[DatabaseRow]:
         """
-        Used to get list of table rows.
+        Returns the list of DatabaseRow objects currently in memory.
         """
         return self.__records
 
     @property
     def columns(self) -> list[str]:
         """
-        Used to get list of table column names.
+        Returns the list of table column names.
         """
         return self._columns
 
-    def add_row(self):
-        """
-        Used to add row to the table.
-        Will not immediately persist row in database
-        but just add it to the object.
+    def add_row(self) -> int:
+        """Adds a new, empty row to the local record list.
+
+        The row is marked as 'new' and will not be persisted in the database
+        until save() is called.
+
+        Returns:
+            int: The row number assigned to the new row.
         """
 
         self.__record_counter += 1
@@ -119,24 +146,35 @@ class DatabaseTable:
         _logger.debug("New row has been added to %s. Row number = %d", self.__table_name, row.row_number)
         return row.row_number
 
-    def get_first(self, column_name: str):
-        """
-        Used to get column value of first row
-        in dataset.
+    def get_first(self, column_name: str) -> Any:
+        """Retrieves a column value from the first row in the dataset.
+
+        Args:
+            column_name: The name of the column to retrieve.
+
+        Returns:
+            The column value or None if the dataset is empty.
         """
         return self.get(1, column_name)
 
-    def set_first(self, column_name: str, column_value):
-        """
-        Used to set column value of first row
-        in dataset.
+    def set_first(self, column_name: str, column_value: Any) -> None:
+        """Sets a column value for the first row in the dataset.
+
+        Args:
+            column_name: The name of the column to modify.
+            column_value: The new value to assign.
         """
         self.set(1, column_name, column_value)
 
-    def get(self, row_number: int, column_name: str):
-        """
-        Used to get column value of specific
-        table row.
+    def get(self, row_number: int, column_name: str) -> Any:
+        """Gets a column value from a specific row identified by row_number.
+
+        Args:
+            row_number: The numerical identifier of the row.
+            column_name: The name of the column to retrieve.
+
+        Returns:
+            The column value, or None if no matching row is found.
         """
 
         for record in self.__records:
@@ -145,20 +183,24 @@ class DatabaseTable:
 
         return None
 
-    def set(self, row_number: int, column_name: str, column_value):
-        """
-        Used to set column value of specific
-        table row.
+    def set(self, row_number: int, column_name: str, column_value: Any) -> None:
+        """Sets a column value for a specific row identified by row_number.
+
+        Args:
+            row_number: The numerical identifier of the row.
+            column_name: The name of the column to modify.
+            column_value: The new value to assign.
         """
 
         for record in self.__records:
             if record.row_number == row_number:
                 record.set(column_name, column_value)
 
-    def save(self):
-        """
-        Used to persist changes that were made
-        to table data in database.
+    def save(self) -> None:
+        """Persists all local changes to the database.
+
+        This includes deleting records marked for removal, updating modified
+        records, and inserting new records.
         """
 
         _logger.debug("Saving table data for %s.", self.__table_name)
@@ -167,24 +209,31 @@ class DatabaseTable:
         self.__insert_records()
 
     def remove(self, row_number: int):
+        """Marks a specific row for removal from the database.
+
+        Args:
+            row_number: The numerical identifier of the row to remove.
+
+        Returns:
+            DatabaseTable: The current instance for method chaining.
         """
-        Used to remove record that corresponds
-        provided row number.
-        """
+
         self.__remove_internal(lambda record: record.row_number == row_number)
         return self
 
     def remove_all(self):
+        """Marks all local records for removal from the database.
+
+        Returns:
+            DatabaseTable: The current instance for method chaining.
         """
-        Used to remove all records from the table.
-        """
+
         self.__remove_internal(lambda record: True)
         return self
 
     def __delete_records(self):
         """
-        Part of save process.
-        Used to delete records in database.
+        Handles the deletion of records during the save process.
         """
 
         pk_columns = self.__get_pk_columns()
@@ -218,8 +267,7 @@ class DatabaseTable:
 
     def __update_records(self):
         """
-        Part of save process.
-        Used to update records in database.
+        Handles the update of modified records during the save process.
         """
 
         pk_columns = self.__get_pk_columns()
@@ -252,8 +300,7 @@ class DatabaseTable:
 
     def __insert_records(self):
         """
-        Part of save process.
-        Used to insert new records into database.
+        Handles the insertion of new records during the save process.
         """
 
         for record in self.__records:
@@ -275,8 +322,7 @@ class DatabaseTable:
 
     def __remove_internal(self, remove_condition: Callable[[DatabaseRow], bool]):
         """
-        Internal row remove method.
-        Remove all records that match provided condition.
+        Internal logic for identifying and staging rows for removal.
         """
 
         for record in self.__records:
@@ -289,10 +335,11 @@ class DatabaseTable:
             if record in self.__records:
                 self.__records.remove(record)
 
-    def __get_pk_columns(self):
-        """
-        Used to get name of primary key column
-        of table.
+    def __get_pk_columns(self) -> list[str]:
+        """Queries the database to identify primary key columns for the table.
+
+        Returns:
+            list[str]: A list of primary key column names.
         """
 
         cursor = self.__db.select(f"PRAGMA table_info({self.__table_name})")
