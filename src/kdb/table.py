@@ -128,7 +128,7 @@ class DatabaseTable:
         """
         return self._columns
 
-    def add(self, **values) -> DatabaseTable:
+    def add(self, **values):
         row = self.add_row()
 
         for column_name, value in values.items():
