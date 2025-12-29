@@ -128,6 +128,14 @@ class DatabaseTable:
         """
         return self._columns
 
+    def add(self, **values) -> DatabaseTable:
+        row = self.add_row()
+
+        for column_name, value in values.items():
+            self.set(row, column_name, value)
+
+        return self
+
     def add_row(self) -> int:
         """Adds a new, empty row to the local record list.
 
