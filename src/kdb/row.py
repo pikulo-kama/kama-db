@@ -1,3 +1,4 @@
+from copy import deepcopy
 from kutil.logger import get_logger
 
 _logger = get_logger(__name__)
@@ -29,12 +30,13 @@ class DatabaseRow:
         self.__is_new = False
 
         for index in range(len(columns)):
+            column_name = columns[index].lower()
             column_value = None
 
             if len(data) > index:
                 column_value = data[index]
 
-            self.__data[columns[index].lower()] = column_value
+            self.__data[column_name] = column_value
 
     def get(self, column_name: str):
         """
@@ -120,14 +122,21 @@ class DatabaseRow:
 
         _logger.debug("After: %s", self.__data)
 
-    def to_json(self):
+    def to_json(self, include_nulls: bool = True):
         """
         Used to get row data in JSON format.
 
         Returns:
             dict: The internal dictionary representing the row data.
         """
-        return self.__data
+
+        formatted_data = deepcopy(self.__data)
+
+        for name, value in self.__data.items():
+            if not include_nulls and value is None:
+                del formatted_data[name]
+
+        return formatted_data
 
     def __str__(self):
         """
