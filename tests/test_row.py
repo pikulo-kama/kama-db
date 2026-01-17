@@ -132,3 +132,11 @@ class TestDatabaseRow:
 
         data = _database_row.to_json()
         assert data["name"] == "Final Name"
+
+    def test_to_json_not_include_nulls(self, _database_row):
+
+        _database_row.set("name", None)
+        _database_row._apply_edits()
+
+        data = _database_row.to_json(include_nulls=False)
+        assert "name" not in data

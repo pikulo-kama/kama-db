@@ -134,6 +134,18 @@ class TestDatabaseTable:
         assert _database_table._DatabaseTable__where_clause is where_clause  # noqa
         assert _database_table._DatabaseTable__order_by_clause is order_by_clause  # noqa
 
+    def test_table_add_row_with_values(self, _database_table, mock_retrieve_cursor):
+
+        _database_table.remove_all()
+
+        _database_table.add(
+            test_value="test",
+            another=1
+        )
+        _database_table.rows[0]._apply_edits()
+
+        assert _database_table.get(1, "test_value") == "test"
+        assert _database_table.get(1, "another") == 1
 
     def test_table_add_row(self, _database_table, mock_retrieve_cursor):
         """
