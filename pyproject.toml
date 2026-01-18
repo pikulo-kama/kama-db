@@ -16,8 +16,12 @@ test = [
     "pytest-cov >= 7.0.0, < 8.0.0"
 ]
 
+[project.entry-points."pytest11"]
+kama_db_fixtures = "kdb.pytest_plugin"
+
 [tool.coverage.run]
 source = ["kdb"]
+omit = ["src/kdb/pytest_plugin.py"]
 disable_warnings = ["module-not-measured"]
 
 [tool.pytest.ini_options]
